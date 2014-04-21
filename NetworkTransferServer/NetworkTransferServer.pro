@@ -1,10 +1,10 @@
 #-------------------------------------------------
 #
-# Project created by QtCreator 2014-02-16T10:08:39
+# Project created by QtCreator 2014-04-20T21:53:56
 #
 #-------------------------------------------------
 
-QT       += core  network gui widgets
+QT       += core network
 
 TARGET = NetworkTransferServer
 CONFIG   += console
@@ -12,14 +12,12 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
-
 SOURCES += main.cpp \
+    tripserver.cpp \
     common.cpp \
-    networktransfer.cpp \
-    serverthread.cpp
+    clientsocket.cpp
 
 HEADERS += \
+    tripserver.h \
     common.h \
-    networktransfer.h \
-    serverthread.h \
-    networkthread.h
+    clientsocket.h

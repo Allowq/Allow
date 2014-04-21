@@ -1,12 +1,10 @@
 #-------------------------------------------------
 #
-# Project created by QtCreator 2014-02-06T12:38:04
+# Project created by QtCreator 2014-04-21T10:26:12
 #
 #-------------------------------------------------
 
-QT       += core
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += network
+QT       += core network
 
 TARGET = NetworkTransferClient
 CONFIG   += console
@@ -16,12 +14,9 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
-    networktransfer.cpp \
-    clientthread.cpp \
+    tripclient.cpp \
     common.cpp
 
 HEADERS += \
-    common.h \
-    networktransfer.h \
-    clientthread.h \
-    networkthread.h
+    tripclient.h \
+    common.h
