@@ -3,6 +3,7 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <signal.h>
 
 class AppOptions : public QObject
 {

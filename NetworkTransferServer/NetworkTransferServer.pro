@@ -15,9 +15,11 @@ TEMPLATE = app
 SOURCES += main.cpp \
     tripserver.cpp \
     common.cpp \
-    clientsocket.cpp
+    clientsocket.cpp \
+    getopt.c
 
 HEADERS += \
     tripserver.h \
     common.h \
-    clientsocket.h
+    clientsocket.h \
+    getopt.h

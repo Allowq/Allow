@@ -1,46 +1,29 @@
 #include "tripserver.h"
 
-TripServer::TripServer(const QStringList &startupOptions)
+TripServer::TripServer(const QString ipAddress, const quint16 port,
+                       const qint64 dataSize, const bool applyUDP) :
+
+    m_ipAddress(ipAddress), m_port(port), m_dataSize(dataSize), m_applyUDP(applyUDP)
 {
-    m_ipAddress = "localhost";
-    m_port = 1488;
-    m_dataSize = 100;
-    this->getStartupOptions(startupOptions);
     this->showStartupOptions();
-    if( !this->listen( QHostAddress(m_ipAddress), m_port ) )
-        qDebug() << "Failed to bind port";
+    if(m_applyUDP)
+    {
+        ClientSocket *socket = new ClientSocket(
+                    this,
+                    QAbstractSocket::UdpSocket,
+                    m_dataSize,
+                    m_ipAddress,
+                    m_port);
+    }
+    else
+        if( !this->listen(QHostAddress(m_ipAddress), m_port) )
+            qDebug() << "Failed to bind port";
 }
 
 void TripServer::incomingConnection(int socketID)
 {
-    ClientSocket *socket = new ClientSocket(this, m_dataSize);
+    ClientSocket *socket = new ClientSocket(this, QAbstractSocket::TcpSocket, m_dataSize);
     socket->setSocketDescriptor(socketID);
-}
-
-void TripServer::getStartupOptions(const QStringList &startupOptions)
-{
-    if(startupOptions.size() > 1)
-    {
-        if(startupOptions.contains("set"))
-        {
-            m_ipAddress.clear();
-            m_ipAddress.append(startupOptions.at(2));
-        }
-        if(startupOptions.size() > 3)
-        {
-            bool ok;
-            quint16 tPort = startupOptions.at(3).toUInt(&ok,10);
-            if(ok)
-                m_port = tPort;
-        }
-        if(startupOptions.size() > 4)
-        {
-            bool ok;
-            quint64 tSize = startupOptions.at(4).toUInt(&ok,10);
-            if(ok)
-                m_dataSize = tSize;
-        }
-    }
 }
 
 void TripServer::showStartupOptions()
@@ -48,7 +31,11 @@ void TripServer::showStartupOptions()
     QTextStream out(stdout);
     out << "    Server startup options\n"
         << "The server is running at "
-        << m_ipAddress << ":" << m_port << "\n"
-        << "Server sends - " << m_dataSize << "Mbyte\n";
+        << m_ipAddress << ":" << m_port;
+    if(m_applyUDP)
+        out << " (use UDP-socket)\n";
+    else
+        out << " (use TCP-socket)\n";
+    out << "Server sends - " << m_dataSize << "Mbyte\n";
     out.flush();
 }
