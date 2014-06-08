@@ -20,9 +20,9 @@ int main(int argc, char *argv[])
     bool setSize = false;
 
     /* Startup parameters */
-    int serverPort;
+    int serverPort = 0;
     QString serverIPAddress;
-    qint64 dataSize;
+    qint64 dataSize = 0;
 
     QCoreApplication server(argc, argv);
 
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
         else
         {
             if(setIP && setPort)
-                srv = new TripServer(serverIPAddress, serverPort, dataSize);
+                srv = new TripServer(serverIPAddress, serverPort);
             else
             {
                 if(setIP)

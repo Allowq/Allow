@@ -5,6 +5,8 @@
 #include <QAbstractSocket>
 #include <QUdpSocket>
 #include <QTimer>
+#include <iostream>     // std::cout
+#include <new>          // std::bad_alloc
 
 class ClientSocket : public QAbstractSocket
 {
@@ -26,7 +28,6 @@ private:
 
 private slots:
     void readClient();
-    void transferEnd(QAbstractSocket::SocketState);
     void processPendingDatagrams();
 
 signals:

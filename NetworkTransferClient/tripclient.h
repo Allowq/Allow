@@ -17,6 +17,11 @@ public:
                         const SocketType socketType = TcpSocket);
 
 private:
+    qint64 pos;
+    qint64 fileSize;
+    QTime transferStartTime;
+    int step;
+
     QUdpSocket *UDPSocket;
     QString m_ipAddress;
     quint16 m_port;
@@ -31,6 +36,7 @@ signals:
 
 private slots:
     void processPendingDatagrams();
+    void incomingConnection();
 
 protected slots:
     void receiveData();

@@ -16,8 +16,24 @@ TripServer::TripServer(const QString ipAddress, const quint16 port,
                     m_port);
     }
     else
-        if( !this->listen(QHostAddress(m_ipAddress), m_port) )
-            qDebug() << "Failed to bind port";
+    {
+        if(m_ipAddress.contains("localhost"))
+        {
+            if( !this->listen(QHostAddress::LocalHost, m_port) )
+            {
+                qDebug() << "\n>> Failed to listen for incoming connections on address or port.";
+                exit(1);
+            }
+        }
+        else
+        {
+            if( !this->listen(QHostAddress(m_ipAddress), m_port) )
+            {
+                qDebug() << "\n>> Failed to listen for incoming connections on address or port.";
+                exit(1);
+            }
+        }
+    }
 }
 
 void TripServer::incomingConnection(int socketID)

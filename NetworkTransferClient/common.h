@@ -16,6 +16,4 @@ private:
     static void exitQt(int sig);
 };
 
-
-
 #endif // COMMON_H

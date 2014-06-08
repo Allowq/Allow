@@ -8,10 +8,16 @@ TripClient::TripClient(const QString ipAddress, const quint16 port, const Socket
 
     if(this->socketType() == QAbstractSocket::TcpSocket)
     {
-        this->connectToHost(QHostAddress(m_ipAddress), m_port);
-        connect(this,SIGNAL(disconnected()),SLOT(deleteLater()));
+    //    connect(this,SIGNAL(disconnected()),SLOT(deleteLater()));
+        if(m_ipAddress.contains("localhost"))
+            this->connectToHost(QHostAddress::LocalHost, m_port);
+        else
+            this->connectToHost(QHostAddress(m_ipAddress), m_port);
         if( !this->waitForConnected( 1000 ) )
-             emit log("Failed to connect!");
+        {
+            emit log("\n>> Failed connect to server.");
+            exit(9);
+        }
         else
         {
             emit log("Client has connected to the server.");
@@ -23,59 +29,50 @@ TripClient::TripClient(const QString ipAddress, const quint16 port, const Socket
         UDPSocket = new QUdpSocket(this);
         UDPSocket->bind(QHostAddress(m_ipAddress),m_port+1,QUdpSocket::ShareAddress);
         this->sendUDPCommandGET();
-        if(UDPSocket->state() == QAbstractSocket::UnconnectedState)
-            qDebug() << "Failed connect to server";
-        else
-            connect(UDPSocket,SIGNAL(readyRead()),SLOT(processPendingDatagrams()));
+        connect(UDPSocket,SIGNAL(readyRead()),SLOT(incomingConnection()));
     }
+}
+
+void TripClient::incomingConnection()
+{
+    emit log("Client has connected to the server.");
+    QByteArray baDatagram;
+    baDatagram.resize(UDPSocket->pendingDatagramSize());
+    UDPSocket->readDatagram(baDatagram.data(), baDatagram.size());
+
+    QDataStream in(&baDatagram, QIODevice::ReadOnly);
+    in.setVersion(QDataStream::Qt_4_7);
+    in >> fileSize;
+    disconnect(UDPSocket,SIGNAL(readyRead()),this,SLOT(incomingConnection()));
+    connect(UDPSocket,SIGNAL(readyRead()),this,SLOT(processPendingDatagrams()));
+    emit log("\nReceiving data from server, wating.");
+
+    pos = 0;
+    step = 0;
+    transferStartTime = QTime::currentTime();
 }
 
 void TripClient::processPendingDatagrams()
 {
-    emit log("Client has connected to the server.");
-    QByteArray baDatagram;
-    do
-    {
-        baDatagram.resize(UDPSocket->pendingDatagramSize());
-        UDPSocket->readDatagram(baDatagram.data(), baDatagram.size());
-    }while(UDPSocket->hasPendingDatagrams());
+    QByteArray buffer;
+    QByteArray datagram;
+    datagram.resize(UDPSocket->pendingDatagramSize());
+    UDPSocket->readDatagram(datagram.data(), datagram.size());
 
-    QDataStream in(&baDatagram, QIODevice::ReadOnly);
+    QDataStream in(&datagram, QIODevice::ReadOnly);
     in.setVersion(QDataStream::Qt_4_7);
-    qint64 fileSize;
-    in >> fileSize;
+    in >> buffer;
+    pos += buffer.size();
 
-    emit log("\nReceiving data from server, wating.");
-
-    qint64 pos = 0;
-    QTime transferStartTime;
-    int timeOfTransmition = 0;
-    QByteArray buf;
-    transferStartTime = QTime::currentTime();
-    while( pos < fileSize )
-    {
-    //    do
-   //     {
-            baDatagram.resize(UDPSocket->pendingDatagramSize());
-            UDPSocket->readDatagram(baDatagram.data(), baDatagram.size());
-   //     }while(UDPSocket->hasPendingDatagrams());
-        char *data;
-        int k = in.readRawData(data, 8*1024);
-        buf.setRawData(data,sizeof(data));
-        if( !buf.size() )
-            continue;
-
-        pos += buf.size();
-    }
-    timeOfTransmition = transferStartTime.msecsTo(QTime::currentTime());
-    this->sendCommandTime(timeOfTransmition);
+    int timeOfTransmition = transferStartTime.msecsTo(QTime::currentTime()) - 3000*step;
+    this->sendUDPCommandTime(timeOfTransmition);
     system("cls");
-    emit log(tr("Transfer ends. Client has received - %1 Mbyte").arg(fileSize / 1024 / 1024));
+    emit log(tr("Transfer ends. Client has received - %1 Mbyte").arg(pos / 1024 / 1024));
     log(tr("\nDownload speed = %1 Mbit/s (Time of transmission - %2 s)")
         .arg(pos * 8 / timeOfTransmition * 0.001)
         .arg(float(timeOfTransmition) * 0.001f));
     emit log("\n\nWould you like to start again this procedure? Push Ctrl+C to exit.");
-    QTimer::singleShot(5000,this,SLOT(receiveData()));
+    //QTimer::singleShot(5000,this,SLOT(incomingConnection()));
 }
 
 void TripClient::receiveData()
@@ -90,16 +87,14 @@ void TripClient::receiveData()
     do
         if( !this->waitForReadyRead() )
         {
-            emit log("Timeout read data.");
-            this->disconnect();
-            emit log("Please try again transfer data.");
-            return;
+            emit log("\n>> Failed receive size of data from server.");
+            exit(10);
         }
     while( this->bytesAvailable() < (int)sizeof( fileSize ) );
 
     in >> fileSize;
 
-    emit log("\nReceiving data from server, wating.");
+    emit log("Receiving data from server, wating.");
 
     qint64 pos = 0;
     QTime transferStartTime;
@@ -110,10 +105,8 @@ void TripClient::receiveData()
     {
         if( !this->waitForReadyRead() )
         {
-            qDebug() << "Timeout read data";
-            this->disconnect();
-            emit log("Please try again transfer data.");
-            return;
+            emit log("\n>> Error. Timeout read data.");
+            exit(11);
         }
 
         buf = this->readAll();
@@ -126,7 +119,7 @@ void TripClient::receiveData()
     this->sendCommandTime(timeOfTransmition);
     system("cls");
     emit log(tr("Transfer ends. Client has received - %1 Mbyte").arg(fileSize / 1024 / 1024));
-    log(tr("\nDownload speed = %1 Mbit/s (Time of transmission - %2 s)")
+    log(tr("Download speed = %1 Mbit/s (Time of transmission - %2 s)")
         .arg(pos * 8 / timeOfTransmition * 0.001)
         .arg(float(timeOfTransmition) * 0.001f));
     emit log("\n\nWould you like to start again this procedure? Push Ctrl+C to exit.");
@@ -137,10 +130,8 @@ void TripClient::sendUDPCommandTime(int timeOfTransmission)
 {
     QByteArray buffer;
     QDataStream out( &buffer, QIODevice::WriteOnly );
-    out.setVersion( QDataStream::Qt_4_5 );
+    out.setVersion( QDataStream::Qt_4_7 );
     out << QString::number(timeOfTransmission);
-    out.device()->seek( 0 );
-    out << (quint16)( buffer.size() - sizeof(quint16));
     UDPSocket->writeDatagram(buffer, QHostAddress(m_ipAddress), m_port);
 }
 
